@@ -1,0 +1,11 @@
+package com.fraud.repository;
+
+import com.fraud.model.FraudAlert;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+
+public interface FraudAlertRepository extends JpaRepository<FraudAlert, Long> {
+    List<FraudAlert> findByIsResolvedFalseOrderByCreatedAtDesc();
+    List<FraudAlert> findByTransactionUserOrderByCreatedAtDesc(com.fraud.model.User user);
+}
