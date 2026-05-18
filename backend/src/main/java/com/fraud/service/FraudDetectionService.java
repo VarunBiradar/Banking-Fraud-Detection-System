@@ -30,7 +30,8 @@ public class FraudDetectionService {
         }
 
         // Rule 2: Velocity Check (Simplified: > 3 transactions in last 5 mins)
-        List<Transaction> lastTransactions = transactionRepository.findByUserOrderByTimestampDesc(transaction.getUser());
+        List<Transaction> lastTransactions = transactionRepository
+                .findByUserOrderByTimestampDesc(transaction.getUser());
         long recentCount = lastTransactions.stream()
                 .filter(t -> t.getTimestamp().isAfter(LocalDateTime.now().minusMinutes(5)))
                 .count();
@@ -40,8 +41,11 @@ public class FraudDetectionService {
         }
 
         // Rule 3: Location Change
-        if (!lastTransactions.isEmpty()) {
-            Transaction lastTx = lastTransactions.get(0);
+        Transaction lastTx = lastTransactions.stream()
+                .filter(t -> t.getId() != null && !t.getId().equals(transaction.getId()))
+                .findFirst()
+                .orElse(null);
+        if (lastTx != null) {
             if (!lastTx.getLocation().equalsIgnoreCase(transaction.getLocation())) {
                 isFraudulent = true;
                 reasons.append("LOCATION_MISMATCH; ");
@@ -58,13 +62,12 @@ public class FraudDetectionService {
                     .build();
             java.util.Objects.requireNonNull(alert);
             fraudAlertRepository.save(alert);
-            
+
             // Send Email Notification
             emailService.sendFraudAlert(
                     transaction.getUser().getEmail(),
                     "Amount: $" + transaction.getAmount() + " at " + transaction.getMerchant(),
-                    reasons.toString()
-            );
+                    reasons.toString());
         } else {
             transaction.setStatus(TransactionStatus.APPROVED);
         }
